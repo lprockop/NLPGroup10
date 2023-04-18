@@ -185,3 +185,68 @@ def pca_fun(df_in, exp_var_in, out_path_i, name_in):
     print (exp_var)
     write_pickle(my_pca, out_path_i, name_in)
     return pca_vec
+
+def model_train(df_in, label_in, test_size_in, sw_in, o_path):
+    #sw = "gnb"
+    from sklearn.model_selection import train_test_split
+    import pandas as pd
+    from sklearn.metrics import precision_recall_fscore_support
+    X_train, X_test, y_train, y_test = train_test_split(
+        df_in, label_in, test_size=test_size_in, random_state=42) #80/20
+    if sw_in == "rf":
+        from sklearn.ensemble import RandomForestClassifier
+        my_model = RandomForestClassifier(random_state=123)
+    elif sw_in == "svm":
+        from sklearn.svm import SVC
+        my_model = SVC()
+    elif sw_in == "gnb":
+        from sklearn.naive_bayes import GaussianNB
+        my_model = GaussianNB()
+    my_model.fit(X_train, y_train)
+    write_pickle(my_model, o_path, sw_in)
+    try:
+        y_pred = pd.DataFrame(my_model.predict(X_test))
+        #y_pred_proba = pd.DataFrame(my_model.predict_proba(X_test))
+        #y_pred_proba.columns = my_model.classes_
+    
+        #performance
+        perf = pd.DataFrame(precision_recall_fscore_support(
+            y_test, y_pred, average='weighted'))
+        perf.index = ["precision", "recall", "fscore", None]
+        print (perf)
+    except:
+        print ("can't extract likelihood scores from", sw_in)
+        pass
+    return my_model
+
+def grid_fun(df_in, label_in, grid_in, t_size_in, cv_in, o_path_in, sw_in):
+    #gridsearchcv
+    from sklearn.model_selection import GridSearchCV
+    from sklearn.model_selection import train_test_split
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.svm import SVC
+    from sklearn.naive_bayes import GaussianNB
+    
+    X_train, X_test, y_train, y_test = train_test_split(
+            df_in, label_in, test_size=t_size_in, random_state=42)
+    if sw_in == "rf":
+        grid_model = RandomForestClassifier()
+    elif sw_in == "svm":
+        grid_model = SVC()
+    elif sw_in == "gnb":
+        grid_model = GaussianNB()
+    
+    grid_search = GridSearchCV(
+        estimator=grid_model, param_grid=grid_in, cv=cv_in)
+    grid_search.fit(X_train, y_train)
+    best_params = grid_search.best_params_
+    print ("best params", best_params)
+    if sw_in == "rf":
+        grid_model = RandomForestClassifier(**grid_search.best_params_)
+    elif sw_in == "svm":
+        grid_model = SVC(**grid_search.best_params_)
+    elif sw_in == "gnb":
+        grid_model = GaussianNB(**grid_search.best_params_)
+    grid_model.fit(df_in, label_in)
+    write_pickle(grid_model, o_path_in, sw_in)
+    return grid_model
