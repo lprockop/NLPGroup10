@@ -229,6 +229,9 @@ def grid_fun(df_in, label_in, grid_in, t_size_in, cv_in, o_path_in, sw_in):
     
     X_train, X_test, y_train, y_test = train_test_split(
             df_in, label_in, test_size=t_size_in, random_state=42)
+    
+    print('Model passed: {}'.format(sw_in))
+        
     if sw_in == "rf":
         grid_model = RandomForestClassifier()
     elif sw_in == "svm":
@@ -240,13 +243,18 @@ def grid_fun(df_in, label_in, grid_in, t_size_in, cv_in, o_path_in, sw_in):
         estimator=grid_model, param_grid=grid_in, cv=cv_in)
     grid_search.fit(X_train, y_train)
     best_params = grid_search.best_params_
-    print ("best params", best_params)
+    
+    print ("Best params: {}".format(best_params))
+    
     if sw_in == "rf":
         grid_model = RandomForestClassifier(**grid_search.best_params_)
     elif sw_in == "svm":
         grid_model = SVC(**grid_search.best_params_)
     elif sw_in == "gnb":
         grid_model = GaussianNB(**grid_search.best_params_)
-    grid_model.fit(df_in, label_in)
+        
+    grid_model.fit(X_train, y_train)
+    print('Train set score: {}'.format(grid_model.score(X_train, y_train)))
+    print('Test set score: {}'.format(grid_model.score(X_test, y_test)))
     write_pickle(grid_model, o_path_in, sw_in)
     return grid_model
